@@ -69,7 +69,7 @@ def parse_profiles(profiles, aliases):
     cluster_names = {}
     assigned_aliases = []
     for profile in profiles:
-        env_profile = f"{sanitize(profile['env'])}-{sanitize(profile['profile'].lower())}"
+        env_profile = f'{sanitize(profile["env"])}-{sanitize(profile["profile"].lower())}'
         if env_profile not in cluster_names:
             app = BritiveCli.escape_profile_element(profile['app'])
             env = BritiveCli.escape_profile_element(profile['env'])
@@ -78,14 +78,17 @@ def parse_profiles(profiles, aliases):
             escaped_profile_str = f'{app}/{env}/{pro}'.lower()
             alias = aliases.get(escaped_profile_str, None)
             assigned_aliases.append(alias)
+            keys_to_remove = ['id', 'attributeSchemaId', 'transitive', 'sessionAttributeType']
+            [list(map(attr.pop, keys_to_remove)) for attr in profile['session_attributes']]
 
             cluster_names[env_profile] = {
                 'apps': [],
                 'url': profile['url'],
                 'cert': profile['cert'],
                 'escaped_profile': escaped_profile_str,
-                'profile': f"{profile['app']}/{profile['env']}/{profile['profile']}".lower(),
+                'profile': f'{profile["app"]}/{profile["env"]}/{profile["profile"]}'.lower(),
                 'alias': alias,
+                'session_attributes': profile['session_attributes'],
             }
         cluster_names[env_profile]['apps'].append(sanitize(profile['app']))
     return [cluster_names, assigned_aliases]
@@ -129,7 +132,6 @@ def build_tenant_config(tenant, cluster_names, username, cli: BritiveCli):
     )
     contexts = []
     clusters = []
-
     for env_profile, details in cluster_names.items():
         if len(details['apps']) == 1:
             names = [env_profile]
@@ -138,6 +140,7 @@ def build_tenant_config(tenant, cluster_names, username, cli: BritiveCli):
 
         cert = details['cert']
         url = details['url']
+        session_attributes = details['session_attributes']
 
         if not valid_cert(cert=cert, profile=details['profile'], cli=cli):
             continue
@@ -162,7 +165,11 @@ def build_tenant_config(tenant, cluster_names, username, cli: BritiveCli):
             contexts.append(
                 {
                     'name': details.get('alias') or f'{tenant}-{name}',
-                    'context': {'cluster': f'{tenant}-{name}', 'user': username},
+                    'context': {
+                        'cluster': f'{tenant}-{name}',
+                        'user': username,
+                        **{attr['mappingName']: attr['attributeValue'] for attr in session_attributes},
+                    },
                 }
             )
     return [clusters, contexts, users]

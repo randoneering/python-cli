@@ -486,6 +486,18 @@ class BritiveCli:
             )
         return {}
 
+    def _fetch_session_attributes_for_profiles(self, accesses):
+        session_attributes = {}
+        unique_profile_ids = {profile_id for _, _, profile_id in accesses}
+        for profile_id in unique_profile_ids:
+            try:
+                session_attrs = self.b.application_management.profiles.session_attributes.list(profile_id=profile_id)
+                session_attributes[profile_id] = session_attrs
+            except Exception:
+                session_attributes[profile_id] = {}
+
+        return session_attributes
+
     def _set_available_profiles(self, from_cache_command=False, profile_type: Optional[str] = None):
         if not self.available_profiles:
             data = []
@@ -503,6 +515,7 @@ class BritiveCli:
                 accesses = [
                     ([a['appContainerId'], a['environmentId'], a['papId']]) for a in access_data.get('accesses', [])
                 ]
+                session_attributes = self._fetch_session_attributes_for_profiles(accesses)
                 access_output = []
                 for app_id, env_id, profile_id in accesses:
                     app = apps[app_id]
@@ -522,6 +535,7 @@ class BritiveCli:
                         'profile_allows_console': app.get('consoleAccess', False),
                         'profile_allows_programmatic': app.get('programmaticAccess', False),
                         'profile_description': profile['papDescription'],
+                        'session_attributes': session_attributes.get(profile_id, []),
                         '2_part_profile_format_allowed': app['requiresHierarchicalModel'],
                         'env_properties': env['profileEnvironmentProperties']
                         or self._get_missing_env_properties(
@@ -537,6 +551,7 @@ class BritiveCli:
                 else:
                     profiles = self.b.my_resources.list(size=resource_limit)
                     profiles = profiles['data']
+                session_attributes = self._fetch_session_attributes_for_profiles(accesses)
                 for item in profiles:
                     row = {
                         'app_name': None,
@@ -551,6 +566,7 @@ class BritiveCli:
                         'profile_id': item['profileId'],
                         'profile_allows_console': False,
                         'profile_allows_programmatic': True,
+                        'session_attributes': session_attributes.get(profile_id, []),
                         'profile_description': None,
                         '2_part_profile_format_allowed': False,
                         'env_properties': item.get('resourceLabels', {}),
@@ -584,6 +600,7 @@ class BritiveCli:
                             'profile': p['profile_name'],
                             'url': url,
                             'cert': cert,
+                            'session_attributes': p['session_attributes'],
                         }
                     )
 
