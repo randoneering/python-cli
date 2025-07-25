@@ -465,38 +465,20 @@ class BritiveCli:
             data.append(row)
         self.print(data, ignore_silent=True)
 
-    # temporary fix till the new API is updated to return `profileEnvironmentProperties`
-    def _get_missing_env_properties(
-        self, app_id: str, app_type: str, env_id: str, profile_id: str, from_cache_command: bool
-    ) -> dict:
-        if app_type.lower() == 'kubernetes' and (from_cache_command or self.config.auto_refresh_kube_config()):
-            if not self.listed_profiles:
-                self.listed_profiles = self.b.my_access.list_profiles()
-            return next(
-                (
-                    env['profileEnvironmentProperties']
-                    for app in self.listed_profiles
-                    if app['appContainerId'] == app_id
-                    for profile in app.get('profiles', [])
-                    if profile['profileId'] == profile_id
-                    for env in profile.get('environments', [])
-                    if env['environmentId'] == env_id
-                ),
-                {},
-            )
-        return {}
-
-    def _fetch_session_attributes_for_profiles(self, accesses):
-        session_attributes = {}
-        unique_profile_ids = {profile_id for _, _, profile_id in accesses}
-        for profile_id in unique_profile_ids:
-            try:
-                session_attrs = self.b.application_management.profiles.session_attributes.list(profile_id=profile_id)
-                session_attributes[profile_id] = session_attrs
-            except Exception:
-                session_attributes[profile_id] = {}
-
-        return session_attributes
+    # temporary fix till the new API is updated to return `sessionAttributes`
+    def _get_missing_session_attributes(self, app_id: str, profile_id: str) -> dict:
+        if not self.listed_profiles:
+            self.listed_profiles = self.b.my_access.list_profiles()
+        return next(
+            (
+                profile['sessionAttributes']
+                for app in self.listed_profiles
+                if app['appContainerId'] == app_id
+                for profile in app.get('profiles', [])
+                if profile['profileId'] == profile_id
+            ),
+            [],
+        )
 
     def _set_available_profiles(self, from_cache_command=False, profile_type: Optional[str] = None):
         if not self.available_profiles:
@@ -515,31 +497,29 @@ class BritiveCli:
                 accesses = [
                     ([a['appContainerId'], a['environmentId'], a['papId']]) for a in access_data.get('accesses', [])
                 ]
-                session_attributes = self._fetch_session_attributes_for_profiles(accesses)
                 access_output = []
                 for app_id, env_id, profile_id in accesses:
                     app = apps[app_id]
                     env = envs[env_id]
                     profile = profiles[profile_id]
                     row = {
-                        'app_name': app['catalogAppDisplayName'],
-                        'app_id': app_id,
-                        'app_type': app['catalogAppName'],
+                        '2_part_profile_format_allowed': app['requiresHierarchicalModel'],
                         'app_description': app['appDescription'],
-                        'env_name': env['environmentName'],
-                        'env_id': env_id,
-                        'env_short_name': env['alternateEnvironmentName'],
+                        'app_id': app_id,
+                        'app_name': app['catalogAppDisplayName'],
+                        'app_type': app['catalogAppName'],
                         'env_description': env['environmentDescription'],
-                        'profile_name': profile['papName'],
-                        'profile_id': profile_id,
+                        'env_id': env_id,
+                        'env_name': env['environmentName'],
+                        'env_properties': env['profileEnvironmentProperties'],
+                        'env_short_name': env['alternateEnvironmentName'],
                         'profile_allows_console': app.get('consoleAccess', False),
                         'profile_allows_programmatic': app.get('programmaticAccess', False),
                         'profile_description': profile['papDescription'],
-                        'session_attributes': session_attributes.get(profile_id, []),
-                        '2_part_profile_format_allowed': app['requiresHierarchicalModel'],
-                        'env_properties': env['profileEnvironmentProperties']
-                        or self._get_missing_env_properties(
-                            app_id, app['catalogAppName'], env_id, profile_id, from_cache_command
+                        'profile_id': profile_id,
+                        'profile_name': profile['papName'],
+                        'session_attributes': profile.get(
+                            'sessionAttributes', self._get_missing_session_attributes(app_id, profile_id)
                         ),
                     }
                     if row not in access_output:
@@ -551,25 +531,23 @@ class BritiveCli:
                 else:
                     profiles = self.b.my_resources.list(size=resource_limit)
                     profiles = profiles['data']
-                session_attributes = self._fetch_session_attributes_for_profiles(accesses)
                 for item in profiles:
                     row = {
-                        'app_name': None,
-                        'app_id': None,
-                        'app_type': 'Resources',
+                        '2_part_profile_format_allowed': False,
                         'app_description': None,
-                        'env_name': item['resourceName'],
-                        'env_id': item['resourceId'],
-                        'env_short_name': item['resourceName'],
+                        'app_id': None,
+                        'app_name': None,
+                        'app_type': 'Resources',
                         'env_description': None,
-                        'profile_name': item['profileName'],
-                        'profile_id': item['profileId'],
+                        'env_id': item['resourceId'],
+                        'env_name': item['resourceName'],
+                        'env_properties': item.get('resourceLabels', {}),
+                        'env_short_name': item['resourceName'],
                         'profile_allows_console': False,
                         'profile_allows_programmatic': True,
-                        'session_attributes': session_attributes.get(profile_id, []),
                         'profile_description': None,
-                        '2_part_profile_format_allowed': False,
-                        'env_properties': item.get('resourceLabels', {}),
+                        'profile_id': item['profileId'],
+                        'profile_name': item['profileName'],
                     }
                     data.append(row)
             self.available_profiles = data

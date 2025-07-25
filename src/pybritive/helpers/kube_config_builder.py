@@ -78,8 +78,6 @@ def parse_profiles(profiles, aliases):
             escaped_profile_str = f'{app}/{env}/{pro}'.lower()
             alias = aliases.get(escaped_profile_str, None)
             assigned_aliases.append(alias)
-            keys_to_remove = ['id', 'attributeSchemaId', 'transitive', 'sessionAttributeType']
-            [list(map(attr.pop, keys_to_remove)) for attr in profile['session_attributes']]
 
             cluster_names[env_profile] = {
                 'apps': [],
@@ -140,7 +138,6 @@ def build_tenant_config(tenant, cluster_names, username, cli: BritiveCli):
 
         cert = details['cert']
         url = details['url']
-        session_attributes = details['session_attributes']
 
         if not valid_cert(cert=cert, profile=details['profile'], cli=cli):
             continue
@@ -168,7 +165,7 @@ def build_tenant_config(tenant, cluster_names, username, cli: BritiveCli):
                     'context': {
                         'cluster': f'{tenant}-{name}',
                         'user': username,
-                        **{attr['mappingName']: attr['attributeValue'] for attr in session_attributes},
+                        **{attr['mappingName']: attr['attributeValue'] for attr in details['session_attributes']},
                     },
                 }
             )
