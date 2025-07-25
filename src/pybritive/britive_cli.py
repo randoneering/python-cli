@@ -973,6 +973,7 @@ class BritiveCli:
         if self._profile_is_for_resource(profile=profile, profile_type=profile_type):
             app_type = 'Resources'
             k8s_processor = None
+            console_fallback = False
             credentials = self._resource_checkout(
                 blocktime=blocktime,
                 justification=justification,
