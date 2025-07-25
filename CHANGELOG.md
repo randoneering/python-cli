@@ -3,6 +3,28 @@
 > As of v1.4.0, release candidates will be published in an effort to get new features out faster while still allowing
 > time for full QA testing before moving the release candidate to a full release.
 
+## v2.2.2 [2025-07-25]
+
+__What's New:__
+
+* None
+
+__Enhancements:__
+
+* Added profile `sessionAttributes` to `context` when building `britive/kube/config`.
+
+__Bug Fixes:__
+
+* Fixed issue with `console_fallback` when checking out a Resource profile with no console access.
+
+__Dependencies:__
+
+* None
+
+__Other:__
+
+* Dropped `_get_missing_env_properties` workaround.
+
 ## v2.2.1 [2025-06-26]
 
 __What's New:__
