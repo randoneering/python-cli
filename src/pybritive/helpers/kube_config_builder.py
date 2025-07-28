@@ -69,7 +69,7 @@ def parse_profiles(profiles, aliases):
     cluster_names = {}
     assigned_aliases = []
     for profile in profiles:
-        env_profile = f"{sanitize(profile['env'])}-{sanitize(profile['profile'].lower())}"
+        env_profile = f'{sanitize(profile["env"])}-{sanitize(profile["profile"].lower())}'
         if env_profile not in cluster_names:
             app = BritiveCli.escape_profile_element(profile['app'])
             env = BritiveCli.escape_profile_element(profile['env'])
@@ -84,8 +84,9 @@ def parse_profiles(profiles, aliases):
                 'url': profile['url'],
                 'cert': profile['cert'],
                 'escaped_profile': escaped_profile_str,
-                'profile': f"{profile['app']}/{profile['env']}/{profile['profile']}".lower(),
+                'profile': f'{profile["app"]}/{profile["env"]}/{profile["profile"]}'.lower(),
                 'alias': alias,
+                'session_attributes': profile['session_attributes'],
             }
         cluster_names[env_profile]['apps'].append(sanitize(profile['app']))
     return [cluster_names, assigned_aliases]
@@ -129,7 +130,6 @@ def build_tenant_config(tenant, cluster_names, username, cli: BritiveCli):
     )
     contexts = []
     clusters = []
-
     for env_profile, details in cluster_names.items():
         if len(details['apps']) == 1:
             names = [env_profile]
@@ -162,7 +162,11 @@ def build_tenant_config(tenant, cluster_names, username, cli: BritiveCli):
             contexts.append(
                 {
                     'name': details.get('alias') or f'{tenant}-{name}',
-                    'context': {'cluster': f'{tenant}-{name}', 'user': username},
+                    'context': {
+                        'cluster': f'{tenant}-{name}',
+                        'user': username,
+                        **{attr['mappingName']: attr['attributeValue'] for attr in details['session_attributes']},
+                    },
                 }
             )
     return [clusters, contexts, users]
