@@ -3,21 +3,21 @@ import sys
 
 import click
 
-from .commands.api import api as command_api
-from .commands.aws import aws as group_aws
-from .commands.cache import cache as group_cache
-from .commands.checkin import checkin as command_checkin
-from .commands.checkout import checkout as command_checkout
-from .commands.clear import clear as group_clear
-from .commands.configure import configure as group_configure
-from .commands.login import login as command_login
-from .commands.logout import logout as command_logout
-from .commands.ls import ls as group_ls
-from .commands.request import request as group_request
-from .commands.secret import secret as group_secret
-from .commands.ssh import ssh as group_ssh
-from .commands.user import user as command_user
-from .options.britive_options import britive_options
+from pybritive.commands.api import api as command_api
+from pybritive.commands.aws import aws as group_aws
+from pybritive.commands.cache import cache as group_cache
+from pybritive.commands.checkin import checkin as command_checkin
+from pybritive.commands.checkout import checkout as command_checkout
+from pybritive.commands.clear import clear as group_clear
+from pybritive.commands.configure import configure as group_configure
+from pybritive.commands.login import login as command_login
+from pybritive.commands.logout import logout as command_logout
+from pybritive.commands.ls import ls as group_ls
+from pybritive.commands.request import request as group_request
+from pybritive.commands.secret import secret as group_secret
+from pybritive.commands.ssh import ssh as group_ssh
+from pybritive.commands.user import user as command_user
+from pybritive.options.britive_options import britive_options
 
 
 def safe_cli():
